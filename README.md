@@ -22,14 +22,24 @@ BexLogix is an offline-first Streamlit application for field-sales operations.
 - `stores.xlsx`: master store list (300 stores in sample).
 - `visitors.xlsx`: daily visitor status file (10 visitors in sample).
 
-## Run (Offline)
+## Run with Docker (recommended)
+1. Prepare the OSRM graph once, if it is not already present:
+   - `./scripts/offline_prepare_osrm_tehran.ps1`
+2. Build and launch the complete stack:
+   - `docker compose up --build -d`
+3. Open `http://127.0.0.1:8501`.
+
+The Compose stack runs the Streamlit app, OSRM, VROOM, and the local tile
+server. Application data is stored in the persistent `bexlogix-runtime`
+volume. Use `docker compose logs -f app` to follow application logs and
+`docker compose down` to stop the stack.
+
+## Run locally (development fallback)
 1. Create environment and install dependencies:
    - `python -m venv .venv`
    - `./.venv/Scripts/activate`
    - `pip install -r requirements.txt`
-2. Prepare OSRM graph once:
-   - `./scripts/offline_prepare_osrm_tehran.ps1`
-3. Launch everything in one command:
+2. Launch the local services and Streamlit UI:
    - `python scripts/run.py`
 
 The launcher brings up the offline Docker stack (OSRM + VROOM + tiles)

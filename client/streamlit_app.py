@@ -22,7 +22,7 @@ from client.pages.manager_dashboard import render_manager_dashboard
 from client.pages.supervisor_dashboard import render_supervisor_dashboard
 from client.pages.telesales_panel import render_telesales_panel
 from client.pages.visitor_panel import render_visitor_panel
-from client.styles.neumorphism import inject_global_css, render_login_logo, role_badge_html
+from client.styles.neumorphism import inject_global_css, render_dashboard_header
 from server.app.enums.roles import UserRole
 from server.app.repositories import user_repository
 from server.db.database import get_db
@@ -88,39 +88,10 @@ def _resolve_tab_icon():
 
 
 # Contract: _render_topbar executes one deterministic step in the workflow.
-def _render_topbar(current_user: dict) -> bool:
-    render_login_logo()
-    spacer_col, user_col = st.columns([10.2, 1.8], gap="medium")
-    with spacer_col:
-        st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
-    with user_col:
-        st.markdown(
-            f"""<div class="app-user-shell">
-                <div class="app-user-mini">
-                    <div class="app-user-mini-name">{current_user['username']}</div>
-                    {role_badge_html(current_user['role'])}
-                </div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-        logout_confirm = bool(st.session_state.get("logout_confirm", False))
-        if not logout_confirm:
-            if st.button("خروج", key="logout_topbar", use_container_width=True):
-                st.session_state["logout_confirm"] = True
-                st.rerun()
-            return False
-
-        st.warning("مطمئن هستید؟ جلسه شما پایان می‌یابد.")
-        c1, c2 = st.columns(2, gap="small")
-        with c1:
-            if st.button("بله، خروج", key="logout_topbar_yes", use_container_width=True):
-                st.session_state["logout_confirm"] = False
-                return True
-        with c2:
-            if st.button("انصراف", key="logout_topbar_cancel", use_container_width=True):
-                st.session_state["logout_confirm"] = False
-                st.rerun()
-    return False
+def _render_topbar(current_user: dict, page_title: str) -> bool:
+    with st.container(key="app_header_shell"):
+        with st.container(key="app_header_row"):
+            return render_dashboard_header(current_user, page_title)
 
 # Contract: main executes one deterministic step in the workflow.
 def main() -> None:
@@ -170,7 +141,13 @@ def main() -> None:
         render_forced_password_change(current_user=current_user)
         return
 
-    if _render_topbar(current_user):
+    page_title = {
+        UserRole.MANAGER.value: "داشبورد مدیر",
+        UserRole.SUPERVISOR.value: "داشبورد سرپرست",
+        UserRole.VISITOR.value: "مسیر من",
+        UserRole.TELESALES.value: "پنل فروش تلفنی",
+    }[role]
+    if _render_topbar(current_user, page_title):
         auth_state.logout_user()
         auth_state.clear_persistent_login_query()
         _set_query_view("login")

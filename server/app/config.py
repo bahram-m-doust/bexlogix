@@ -8,6 +8,9 @@ import os
 from urllib.parse import urlparse
 
 
+_DOCKER_SERVICE_HOSTS = frozenset({"osrm", "vroom", "tiles"})
+
+
 # Contract: _to_float executes one deterministic step in the workflow.
 def _to_float(raw_value: str | None, default: float) -> float:
     if raw_value is None:
@@ -35,7 +38,7 @@ def _is_local_or_private_host(hostname: str | None) -> bool:
     if not hostname:
         return False
     normalized = hostname.strip().lower()
-    if normalized in {"localhost", "127.0.0.1", "::1"}:
+    if normalized in {"localhost", "127.0.0.1", "::1"} | _DOCKER_SERVICE_HOSTS:
         return True
     try:
         ip_obj = ipaddress.ip_address(normalized)

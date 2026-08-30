@@ -86,8 +86,8 @@ def touch_session() -> None:
     acknowledged = bool(st.session_state.get(SESSION_EXPIRY_WARNING_ACK_KEY, False))
     if 0 < remaining_minutes < 30 and not acknowledged:
         st.session_state[SESSION_EXPIRY_WARNING_KEY] = (
-            f"جلسه شما حدود {int(round(remaining_minutes))} دقیقه دیگر منقضی می‌شود. "
-            "برای ادامه کار صفحه را رفرش کنید."
+            f"جلسهٔ شما حدود {int(round(remaining_minutes))} دقیقه دیگر منقضی می‌شود. "
+            "برای تمدید، صفحه را یک‌بار تازه‌سازی کنید؛ اطلاعات ثبت‌شده حفظ می‌شود."
         )
     else:
         st.session_state.pop(SESSION_EXPIRY_WARNING_KEY, None)

@@ -35,18 +35,20 @@ You can override image explicitly:
 Expected output file:
 - `offline/osrm/data/tehran-latest.osrm`
 
-## 3) Start Local Offline Services (single command)
-Bring up OSRM + Tile stack and wait for readiness:
+## 3) Build and Start the Complete Stack (single command)
+Bring up the Streamlit app, OSRM, VROOM, and tile server:
 
 ```powershell
-.\scripts\offline_up.ps1
+docker compose up --build -d
 ```
 
-This uses:
-- `infra/offline/docker-compose.offline.yml`
+This uses `compose.yaml` and exposes:
+- Streamlit -> `127.0.0.1:8501`
 - OSRM -> `127.0.0.1:5000`
+- VROOM -> `127.0.0.1:3000`
 - Tile -> `127.0.0.1:8080`
-- The startup script auto-selects the first available `.mbtiles` file and passes it as `TILE_MB_FILE`.
+
+SQLite data persists in the named Docker volume `bexlogix-runtime`.
 
 ## 4) Health Check
 Run explicit health check anytime:
@@ -61,10 +63,9 @@ To wait until services become ready:
 .\scripts\offline_health.ps1 -WaitForReady -AllowTilesDown -MaxWaitSeconds 60
 ```
 
-## 5) Run Application
-```powershell
-streamlit run client/streamlit_app.py
-```
+## 5) Open Application
+Open `http://127.0.0.1:8501` in a browser. Follow logs with
+`docker compose logs -f app`.
 
 ## 6) Required Environment Variables (defaults already local)
 - `OSRM_BASE_URL=http://127.0.0.1:5000`
@@ -77,11 +78,9 @@ streamlit run client/streamlit_app.py
 - `OFFLINE_TILES_MB_TILES_GLOB=offline/tiles/data/*.mbtiles`
 
 ## 7) 5-Minute Recovery Checklist
-1. Check Docker is up: `docker ps`
+1. Check Docker is up: `docker compose ps`
 2. Check offline services: `.\scripts\offline_health.ps1`
-3. If down, restart stack:
-   - `.\scripts\offline_down.ps1`
-   - `.\scripts\offline_up.ps1`
+3. If down, restart stack: `docker compose up -d`
 4. Re-run manager pipeline for target date.
 
 ## 8) Common Failure Triage

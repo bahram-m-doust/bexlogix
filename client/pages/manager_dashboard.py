@@ -69,8 +69,10 @@ def _runtime_health_caption(runtime_state: dict[str, object]) -> str:
     osrm_latency_text = f"{osrm_latency}ms" if osrm_latency is not None else "—"
     tiles_latency_text = f"{tiles_latency}ms" if tiles_latency is not None else "—"
     return (
-        f"پیش‌بررسی سرویس‌ها: OSRM={osrm_text} ({osrm_latency_text}) | "
-        f"Tile={tiles_text} ({tiles_latency_text})"
+        f'پیش‌بررسی سرویس‌ها: <span class="ltr-inline">OSRM</span>={osrm_text} '
+        f'(<span class="ltr-inline">{osrm_latency_text}</span>) | '
+        f'<span class="ltr-inline">Tile</span>={tiles_text} '
+        f'(<span class="ltr-inline">{tiles_latency_text}</span>)'
     )
 
 
@@ -80,9 +82,6 @@ def _render_offline_stack_starter(key_prefix: str) -> None:
     operator can recover without dropping to a terminal."""
     prereq = offline_stack_service.describe_prerequisites()
     if not prereq["docker_available"]:
-        st.caption(
-            "برای روشن‌کردن خودکار سرویس‌های آفلاین، Docker Desktop باید نصب و در حال اجرا باشد."
-        )
         return
     if not prereq["osrm_graph_ready"]:
         st.caption(
@@ -92,7 +91,7 @@ def _render_offline_stack_starter(key_prefix: str) -> None:
         return
 
     if st.button(
-        "🟢 راه‌اندازی خودکار سرویس‌های آفلاین",
+        "راه‌اندازی خودکار سرویس‌های آفلاین",
         key=f"{key_prefix}_start_offline",
         help="docker compose up -d برای OSRM/VROOM/Tile",
     ):
@@ -540,24 +539,26 @@ def _render_pipeline_result(result: dict) -> None:
     gate_text = (
         "قابل مقایسه نیست"
         if not comparable
-        else ("قبول" if quality["passes_gate"] else "رد")
+        else "مسیر ساخته شد"
     )
 
     render_metric_grid(
         [
-            ("مسافت مسیر مبنا (قبل از بهینه‌سازی) (km)", quality["baseline_km"]),
-            ("مسافت مسیر فعلی (بعد از بهینه‌سازی) (km)", quality["current_km"]),
-            ("درصد بهبود مسیر", f"{quality['improvement_pct']}%"),
+            ('مسافت مبنای مقایسه (<span class="ltr-inline">km</span>)', quality["baseline_km"]),
+            ('مسافت مسیر ساخته‌شده (<span class="ltr-inline">km</span>)', quality["current_km"]),
+            ("بهبود نسبت به مبنای مقایسه", f"{quality['improvement_pct']}%"),
             ("وضعیت", gate_text),
         ]
     )
     if solver_mode == "vroom":
         route_mode_text = (
-            f"مسیر {route_summary.get('vroom_routed', 0)} ویزیتور با VROOM+OSRM آفلاین"
+            f'مسیر {route_summary.get("vroom_routed", 0)} ویزیتور با '
+            '<span class="ltr-inline">VROOM+OSRM</span> آفلاین'
         )
     else:
         route_mode_text = (
-            f"مسیر {route_summary.get('osrm_routed', 0)} ویزیتور با OSRM | "
+            f'مسیر {route_summary.get("osrm_routed", 0)} ویزیتور با '
+            '<span class="ltr-inline">OSRM</span> | '
             f"{route_summary.get('nn_routed', 0)} ویزیتور با الگوریتم پشتیبان"
         )
     st.markdown(
@@ -572,8 +573,9 @@ def _render_pipeline_result(result: dict) -> None:
         st.markdown(
             (
                 '<div style="direction:rtl;text-align:right;color:#6B7280;font-size:.85rem;margin-top:.05rem;">'
-                "fallback مرحله اول: "
-                f"VROOM به Legacy ({_fallback_reason_fa(solver_reason)})"
+                '<span class="ltr-inline">fallback</span> مرحله اول: '
+                '<span class="ltr-inline">VROOM</span> به '
+                f'<span class="ltr-inline">Legacy</span> ({_fallback_reason_fa(solver_reason)})'
                 "</div>"
             ),
             unsafe_allow_html=True,
@@ -582,7 +584,7 @@ def _render_pipeline_result(result: dict) -> None:
         st.markdown(
             (
                 '<div style="direction:rtl;text-align:right;color:#6B7280;font-size:.85rem;margin-top:.05rem;">'
-                "دلیل fallback: "
+                'دلیل <span class="ltr-inline">fallback</span>: '
                 f"{_fallback_reason_fa(route_summary.get('fallback_reason'))}"
                 "</div>"
             ),
@@ -620,14 +622,13 @@ def _render_pipeline_result(result: dict) -> None:
             f"reason={shadow_reason}"
         )
     if comparable and not quality["passes_gate"]:
-        st.warning(
-            "وضعیت ارزیابی رد شد. بهبود مسیر باید حداقل ۲۰٪ نسبت به مقدار مبنا باشد."
+        st.info(
+            "مسیرها با OSRM با موفقیت ساخته شدند. "
+            f"شاخص مقایسه فعلی {quality['improvement_pct']}٪ است و به هدف آزمایشی ۲۰٪ نرسیده است."
         )
 
 
 def render_manager_dashboard(current_user: dict) -> None:
-    render_page_title("داشبورد مدیر")
-
     work_date = jalali_date_input(
         label="📅 تاریخ کاری",
         key_prefix="manager_work_date",
@@ -655,10 +656,10 @@ def render_manager_dashboard(current_user: dict) -> None:
 
     if is_hard_locked or is_soft_locked:
         st.warning(
-            "این تاریخ قفل است: "
-            f"{visit_count} ویزیت ثبت‌شده | "
-            f"{followup_count} پیگیری فعال | "
-            f"{published_count} تخصیص منتشرشده"
+            "این روز بسته شده است — "
+            f"{visit_count} ویزیت، {followup_count} پیگیری، "
+            f"{published_count} تخصیص منتشرشده. برای ساخت مسیر جدید، تاریخ دیگری "
+            "انتخاب کنید یا از پاک‌سازی کامل استفاده کنید."
         )
     if is_soft_locked:
         st.info(
@@ -666,7 +667,9 @@ def render_manager_dashboard(current_user: dict) -> None:
         )
     if (not is_hard_locked) and draft_count <= 0:
         st.info(
-            "برای این تاریخ پیش‌نویسی برای انتشار وجود ندارد. اگر قبلاً منتشر شده، برای ساخت مسیر جدید ابتدا پاک‌سازی کامل همان تاریخ را انجام دهید."
+            "برای این تاریخ هنوز مسیری ساخته نشده است. فایل وضعیت روزانه را "
+            "بارگذاری کنید. (اگر قبلاً منتشر شده، ساخت مجدد فقط پس از پاک‌سازی کامل "
+            "همین تاریخ ممکن است.)"
         )
 
     with st.expander("اعمال فایل‌ها و ساخت مسیر", expanded=not is_hard_locked):
@@ -689,27 +692,30 @@ def render_manager_dashboard(current_user: dict) -> None:
             unsafe_allow_html=True,
         )
 
-        c1, c2 = st.columns(2)
-        with c1:
-            stores_file = st.file_uploader(
-                "فایل فروشگاه‌ها (اختیاری)",
-                type=["xlsx"],
-                key=f"stores_apply_{work_date_iso}",
-                disabled=is_hard_locked,
-            )
-        with c2:
-            daily_file = st.file_uploader(
-                "فایل وضعیت روزانه ویزیتورها (اجباری)",
-                type=["xlsx"],
-                key=f"daily_apply_{work_date_iso}",
-                disabled=is_hard_locked,
-            )
+        with st.container(key="manager_upload_stack"):
+            with st.container(key="manager_stores_upload_field"):
+                stores_file = st.file_uploader(
+                    "فایل فروشگاه‌ها (اختیاری)",
+                    type=["xlsx"],
+                    key=f"stores_apply_{work_date_iso}",
+                    disabled=is_hard_locked,
+                )
+                st.caption("یک فایل XLSX؛ برای به‌روزرسانی اطلاعات فروشگاه‌ها اختیاری است.")
+
+            with st.container(key="manager_daily_upload_field"):
+                daily_file = st.file_uploader(
+                    "فایل وضعیت روزانه ویزیتورها (اجباری)",
+                    type=["xlsx"],
+                    key=f"daily_apply_{work_date_iso}",
+                    disabled=is_hard_locked,
+                )
+                st.caption("یک فایل XLSX؛ برای ثبت ظرفیت و نقطه شروع ویزیتورها الزامی است.")
 
         if st.button(
             "اعمال فایل‌ها و ساخت مسیر",
             key=f"build_pipeline_{work_date_iso}",
-            use_container_width=True,
             disabled=is_hard_locked,
+            type="primary",
         ):
             if is_soft_locked:
                 st.error(
@@ -764,7 +770,6 @@ def render_manager_dashboard(current_user: dict) -> None:
         if st.button(
             "پاک‌سازی کامل همین تاریخ",
             key=f"flush_{work_date_iso}",
-            use_container_width=True,
             disabled=(not confirm_flush) or (not has_any_daily_data),
         ):
             try:
@@ -775,10 +780,9 @@ def render_manager_dashboard(current_user: dict) -> None:
                         manager_user_id=current_user["id"],
                     )
                 st.success(
-                    "پاک‌سازی انجام شد: "
-                    f"assignments={result['assignments_deleted']} | "
-                    f"visits={result['visits_deleted']} | "
-                    f"followups={result['followups_deleted']}"
+                    f"پاک‌سازی انجام شد: {result['assignments_deleted']} تخصیص، "
+                    f"{result['visits_deleted']} نتیجهٔ ویزیت و "
+                    f"{result['followups_deleted']} پیگیری حذف شدند."
                 )
                 st.session_state.pop("manager_last_pipeline_result", None)
                 st.session_state.pop("manager_last_pipeline_date", None)
@@ -788,14 +792,14 @@ def render_manager_dashboard(current_user: dict) -> None:
                 st.error(f"خطا در پاک‌سازی: {exc}")
 
     neu_section_header("عملیات مدیریتی")
-    op1, op2 = st.columns(2)
+    op1, op2 = st.columns([1, 7], gap="small")
 
     with op1:
         if st.button(
-            "📤 انتشار مسیرها",
+            "انتشار مسیرها",
             key=f"publish_{work_date_iso}",
-            use_container_width=True,
             disabled=is_hard_locked or (draft_count <= 0),
+            type="primary",
         ):
             try:
                 with get_db() as db:
@@ -818,9 +822,8 @@ def render_manager_dashboard(current_user: dict) -> None:
         preview_key = f"finalize_preview_{work_date_iso}"
         confirm_key = f"finalize_confirm_{work_date_iso}"
         if st.button(
-            "🔒 نهایی‌سازی موارد ثبت‌نشده",
+            "نهایی‌سازی موارد ثبت‌نشده",
             key=f"finalize_{work_date_iso}",
-            use_container_width=True,
             disabled=is_hard_locked,
         ):
             with get_db() as db:
@@ -871,11 +874,11 @@ def render_manager_dashboard(current_user: dict) -> None:
     neu_section_header("شاخص‌های روزانه")
     render_metric_grid(
         [
-            ("صف تامین‌پذیر", kpis["due_stores"]),
+            ("فروشگاه‌های موعددار امروز", kpis["due_stores"]),
             ("سبز / زرد / قرمز", f"{kpis['green']} / {kpis['yellow']} / {kpis['red']}"),
             ("ویزیت تکمیل‌شده", kpis["completed_visits"]),
             ("تخصیص‌شده", kpis["assigned_stores"]),
-            ("در انتظار تماس تلفنی", kpis["telesales_queue_size"]),
+            ("صف تماس تلفنی (کل صف فعال)", kpis["telesales_queue_size"]),
         ]
     )
     if int(kpis.get("due_stores", 0)) == 0:
@@ -930,7 +933,7 @@ def render_manager_dashboard(current_user: dict) -> None:
         st.warning("فایل MBTiles پیدا نشد (offline/tiles/data/*.mbtiles).")
     st.markdown(
         '<div class="panel-description" style="text-align:right !important;margin:0.1rem 0 0.35rem;">'
-        "راهنما: در همین کادر انتخاب ویزیتور می‌توانید جست‌وجو کنید (نمونه: VIS-001 یا visitor1)."
+        'راهنما: در همین کادر انتخاب ویزیتور می‌توانید جست‌وجو کنید (نمونه: <span class="ltr-inline">VIS-001</span> یا <span class="ltr-inline">visitor1</span>).'
         "</div>",
         unsafe_allow_html=True,
     )
@@ -958,7 +961,7 @@ def render_manager_dashboard(current_user: dict) -> None:
             )
 
     neu_section_header("خروجی‌ها")
-    ex1, ex2 = st.columns(2)
+    ex1, ex2 = st.columns([1, 1], gap="small")
     with ex1:
         if selected_code:
             with get_db() as db:
@@ -968,11 +971,10 @@ def render_manager_dashboard(current_user: dict) -> None:
                     visitor_id=visitor_options[selected_code],
                 )
             st.download_button(
-                label=f"📥 دانلود مسیر {selected_code}",
+                label=f"دانلود مسیر {selected_code}",
                 data=route_buf.getvalue(),
                 file_name=f"route_{work_date_iso}_{selected_code}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
             )
 
     with ex2:
@@ -982,9 +984,8 @@ def render_manager_dashboard(current_user: dict) -> None:
                 work_date=work_date,
             )
         st.download_button(
-            label="📥 دانلود گزارش کامل روزانه",
+            label="دانلود گزارش کامل روزانه",
             data=summary_buf.getvalue(),
             file_name=f"summary_{work_date_iso}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
         )

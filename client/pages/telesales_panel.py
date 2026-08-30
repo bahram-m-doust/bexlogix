@@ -27,7 +27,7 @@ CONTACT_LABELS = {
 OUTCOME_LABELS = {
     TelesalesOutcome.SALE_DONE.value: "فروش انجام شد",
     TelesalesOutcome.NO_NEED.value: "نیازی نبود",
-    TelesalesOutcome.POSTPONE.value: "موکول شد",
+    TelesalesOutcome.POSTPONE.value: "موکول شد (پیگیری جدید برای فردا ساخته می‌شود)",
     TelesalesOutcome.INVALID.value: "نامعتبر",
 }
 
@@ -58,8 +58,6 @@ def _get_paginated_slice(items: list[dict], page: int) -> tuple[list[dict], int,
     return items[start_idx:end_idx], safe_page, start_idx + 1 if total > 0 else 0, end_idx
 
 def render_telesales_panel(current_user: dict) -> None:
-    render_page_title("پنل فروش تلفنی")
-
     as_of_date = jalali_date_input(
         label="📅 نمایش موارد تا تاریخ",
         key_prefix="telesales_as_of_date",
@@ -93,7 +91,7 @@ def render_telesales_panel(current_user: dict) -> None:
 
     nav_left, nav_center, nav_right = st.columns([1, 2, 1], gap="small")
     with nav_left:
-        if st.button("قبلی", key="telesales_prev_page", disabled=page <= 1, use_container_width=True):
+        if st.button("قبلی", key="telesales_prev_page", disabled=page <= 1):
             st.session_state["telesales_page"] = max(page - 1, 1)
             st.rerun()
     with nav_center:
@@ -106,7 +104,6 @@ def render_telesales_panel(current_user: dict) -> None:
             "بعدی",
             key="telesales_next_page",
             disabled=page >= total_pages,
-            use_container_width=True,
         ):
             st.session_state["telesales_page"] = min(page + 1, total_pages)
             st.rerun()
@@ -139,15 +136,15 @@ def render_telesales_panel(current_user: dict) -> None:
         with st.expander(title):
             st.markdown('<div class="neu-card-flat">', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="telesales-detail-line"><strong>تاریخ پیگیری:</strong> {_safe_text(item.get("followup_date"))}</div>',
+                f'<div class="telesales-detail-line"><strong>تاریخ پیگیری:</strong> <span class="ltr-inline">{_safe_text(item.get("followup_date"))}</span></div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f'<div class="telesales-detail-line"><strong>تاریخ ویزیت قرمز:</strong> {_safe_text(item.get("visit_date"))}</div>',
+                f'<div class="telesales-detail-line"><strong>تاریخ ویزیت قرمز:</strong> <span class="ltr-inline">{_safe_text(item.get("visit_date"))}</span></div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
-                f'<div class="telesales-detail-line"><strong>ویزیتور:</strong> {_safe_text(item.get("visitor_code"))}</div>',
+                f'<div class="telesales-detail-line"><strong>ویزیتور:</strong> <span class="ltr-inline">{_safe_text(item.get("visitor_code"))}</span></div>',
                 unsafe_allow_html=True,
             )
             st.markdown(
@@ -191,7 +188,10 @@ def render_telesales_panel(current_user: dict) -> None:
                     key=f"note_{followup_id}",
                     placeholder="یادداشت اختیاری پیگیری...",
                 )
-                submitted = st.form_submit_button("ذخیره نتیجه", use_container_width=True)
+                submitted = st.form_submit_button(
+                    "ذخیره نتیجه",
+                    type="primary",
+                )
 
             if submitted:
                 try:

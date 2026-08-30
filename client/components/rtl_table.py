@@ -34,7 +34,7 @@ _ASSIGNMENT_STATUS_MAP = {
 }
 
 _COLUMN_LABELS = {
-    "assignment_id": "شناسه تخصیص",
+    "assignment_id": "ردیف",
     "work_date": "تاریخ کاری",
     "visitor_code": "کد ویزیتور",
     "store_code": "کد فروشگاه",
@@ -230,49 +230,60 @@ def render_rtl_table(
     html_block = f"""
     <style>
       {local_font_css}
+      :root {{
+        --bex-background: #ffffff;
+        --bex-foreground: #0a0a0a;
+        --bex-card: #ffffff;
+        --bex-muted: #f5f5f5;
+        --bex-muted-foreground: #737373;
+        --bex-border: #e5e5e5;
+        --bex-ring: #a3a3a3;
+        --bex-radius-lg: 10px;
+        --bex-shadow-xs: 0 1px 2px 0 #0000000d;
+      }}
       body {{
         margin: 0;
         padding: 0;
         direction: rtl;
         font-family: Vazirmatn, IRANSansFaNum, Tahoma, Arial, sans-serif;
         background: transparent;
-        color: #2C3E50;
+        color: var(--bex-foreground);
       }}
       .bex-table-root {{
         direction: rtl;
         text-align: right;
       }}
       .bex-table-caption {{
-        color: #5A6878;
-        font-size: 0.82rem;
+        color: var(--bex-muted-foreground);
+        font-size: 0.875rem;
         margin: 0.1rem 0 0.32rem;
         text-align: right;
       }}
       .bex-table-wrap {{
         max-height: {int(visible_table_height)}px;
         overflow: auto;
-        border-radius: 12px;
-        border: 1px solid #d7dde8;
-        background: #F2F4F7;
+        border-radius: var(--bex-radius-lg);
+        border: 1px solid var(--bex-border);
+        background: var(--bex-card);
+        box-shadow: var(--bex-shadow-xs);
         scrollbar-width: thin;
-        scrollbar-color: #a5afbd #e9edf3;
+        scrollbar-color: var(--bex-ring) var(--bex-muted);
       }}
       .bex-table-wrap::-webkit-scrollbar {{
         width: 11px;
         height: 11px;
       }}
       .bex-table-wrap::-webkit-scrollbar-track {{
-        background: #e9edf3;
+        background: var(--bex-muted);
         border-radius: 999px;
-        box-shadow: inset 1px 1px 3px rgba(173, 181, 195, 0.45), inset -1px -1px 3px rgba(255, 255, 255, 0.95);
       }}
       .bex-table-wrap::-webkit-scrollbar-thumb {{
-        background: linear-gradient(180deg, #bcc4d1 0%, #a5afbd 100%);
+        background: var(--bex-ring);
         border-radius: 999px;
-        border: 2px solid #e9edf3;
+        border: 2px solid var(--bex-muted);
       }}
       .bex-table-wrap::-webkit-scrollbar-thumb:hover {{
-        background: linear-gradient(180deg, #aeb8c8 0%, #97a3b5 100%);
+        background: var(--bex-muted-foreground);
       }}
       table.bex-rtl-table {{
         width: 100%;
@@ -283,19 +294,21 @@ def render_rtl_table(
       }}
       .bex-rtl-table th,
       .bex-rtl-table td {{
-        border: 1px solid #d7dde8;
+        border: 0;
+        border-bottom: 1px solid var(--bex-border);
         padding: 0.5rem 0.55rem;
         text-align: center;
         vertical-align: middle;
         white-space: nowrap;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
       }}
       .bex-rtl-table th {{
         position: sticky;
         top: 0;
         z-index: 2;
-        background: #E8ECF1;
-        font-weight: 700;
+        background: var(--bex-muted);
+        color: var(--bex-foreground);
+        font-weight: 500;
         cursor: pointer;
         user-select: none;
       }}
@@ -304,11 +317,11 @@ def render_rtl_table(
       .bex-sort-ind {{
         margin-right: 0.25rem;
         font-size: 0.75rem;
-        color: #64748B;
+        color: var(--bex-muted-foreground);
       }}
       .bex-empty {{
         text-align: center;
-        color: #5A6878;
+        color: var(--bex-muted-foreground);
         padding: 1rem;
       }}
     </style>

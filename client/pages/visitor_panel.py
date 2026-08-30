@@ -31,9 +31,9 @@ RESULT_COLORS = {
 }
 
 VISIT_RESULT_LABELS = {
-    VisitResult.GREEN.value: "سبز (خرید انجام شد)",
-    VisitResult.YELLOW.value: "زرد (ویزیت شد، فروش نشد)",
-    VisitResult.RED.value: "قرمز (ویزیت انجام نشد)",
+    VisitResult.GREEN.value: "✓ سبز — خرید انجام شد",
+    VisitResult.YELLOW.value: "! زرد — ویزیت شد، فروش نشد (۳ روز دیگر به مسیر برمی‌گردد)",
+    VisitResult.RED.value: "✕ قرمز — ویزیت انجام نشد (فروشگاه به صف تماس تلفنی می‌رود)",
 }
 
 _EMPTY_NOTE_MARKERS = {
@@ -119,7 +119,11 @@ def _render_grade_distribution(assignments_df: pd.DataFrame) -> None:
         .value_counts()
         .to_dict()
     )
-    parts = [f"{int(counts[g])} {g}" for g in order if int(counts.get(g, 0)) > 0]
+    parts = [
+        f'{int(counts[g])} <span class="ltr-inline">{g}</span>'
+        for g in order
+        if int(counts.get(g, 0)) > 0
+    ]
     unknown_count = int(sum(v for k, v in counts.items() if k not in set(order)))
     if unknown_count > 0:
         parts.append(f"{unknown_count} نامشخص")
@@ -132,7 +136,6 @@ def _render_grade_distribution(assignments_df: pd.DataFrame) -> None:
 
 
 def render_visitor_panel(current_user: dict) -> None:
-    render_page_title("مسیر من")
     profile = _cached_visitor_profile(current_user["id"])
     if not profile:
         st.error("برای این حساب کاربری پروفایل ویزیتور پیدا نشد.")
@@ -161,7 +164,7 @@ def render_visitor_panel(current_user: dict) -> None:
         [
             ("تعداد توقف", total_stops),
             ("تکمیل‌شده", completed_count),
-            ("مسافت مسیر (km)", f"{max_distance:.1f}"),
+            ('مسافت مسیر (<span class="ltr-inline">km</span>)', f"{max_distance:.1f}"),
         ]
     )
     _render_grade_distribution(assignments_df)
@@ -191,7 +194,7 @@ def render_visitor_panel(current_user: dict) -> None:
             visitor_id=profile.id,
         )
     st.download_button(
-        label="📥 دانلود مسیر من",
+        label="دانلود مسیر من",
         data=route_buf.getvalue(),
         file_name=f"my_route_{work_date_iso}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -207,7 +210,7 @@ def render_visitor_panel(current_user: dict) -> None:
             <div class="neu-card-flat">
                 <div style="display:flex;gap:2rem;flex-wrap:wrap;direction:rtl;text-align:right;justify-content:flex-start;">
                     <div><strong>آدرس:</strong> {row['address'] or '—'}</div>
-                    <div><strong>مختصات:</strong> {row['lat']}, {row['lon']}</div>
+                    <div><strong>مختصات:</strong> <span class="ltr-inline">{row['lat']}, {row['lon']}</span></div>
                     <div><strong>وضعیت تخصیص:</strong> {status_badge(str(row['assignment_status']))}</div>
                 </div>
             </div>
@@ -251,7 +254,10 @@ def render_visitor_panel(current_user: dict) -> None:
                     key=f"note_{row['assignment_id']}",
                     placeholder="یادداشت اختیاری برای این ویزیت...",
                 )
-                submitted = st.form_submit_button("ثبت نتیجه", use_container_width=True)
+                submitted = st.form_submit_button(
+                    "ثبت نتیجه",
+                    type="primary",
+                )
 
             if submitted:
                 try:

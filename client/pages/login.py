@@ -69,23 +69,15 @@ def _reset_login_rate_limit() -> None:
 # Contract: render_login_page executes one deterministic step in the workflow.
 def render_login_page() -> None:
     inject_global_css()
-    render_login_logo()
-
-    st.markdown(
-        """
-        <div class="login-title-block">
-            <div class="login-title-main">ورود به BexLogix</div>
-            <div class="login-title-sub">سیستم مدیریت عملیات فروش میدانی</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     is_locked, remaining_seconds = _get_lock_state()
     if is_locked:
-        st.error(f"حساب کاربری { _format_remaining_time(remaining_seconds) } دیگر قابل دسترسی است.")
+        st.error(
+            f"به دلیل ۵ تلاش ناموفق، ورود تا {_format_remaining_time(remaining_seconds)} دیگر قفل است."
+        )
 
     with st.form("login_form", clear_on_submit=False):
+        render_login_logo()
         username = st.text_input("نام کاربری", key="login_username")
         password = st.text_input("رمز عبور", type="password", key="login_password")
 
@@ -95,7 +87,12 @@ def render_login_page() -> None:
                 "در صورت خطای ورود، زبان صفحه‌کلید را روی English قرار دهید."
             )
 
-        submitted = st.form_submit_button("ورود", use_container_width=True, disabled=is_locked)
+        submitted = st.form_submit_button(
+            "ورود",
+            use_container_width=True,
+            disabled=is_locked,
+            type="primary",
+        )
 
     st.markdown(
         '<p class="login-footer-powered">Powered by <strong>Kanoon Iran Novin</strong></p>',

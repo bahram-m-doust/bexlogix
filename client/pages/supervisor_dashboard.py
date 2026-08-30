@@ -84,8 +84,6 @@ def _export_all_routes(work_date: date, visitor_options: dict[str, int]) -> Byte
 
 
 def render_supervisor_dashboard(current_user: dict) -> None:
-    render_page_title("داشبورد سرپرست")
-
     work_date = jalali_date_input(
         label="📅 تاریخ کاری",
         key_prefix="supervisor_work_date",
@@ -100,11 +98,11 @@ def render_supervisor_dashboard(current_user: dict) -> None:
     neu_section_header("شاخص‌های روزانه")
     render_metric_grid(
         [
-            ("صف تامین‌پذیر", kpis["due_stores"]),
+            ("فروشگاه‌های موعددار امروز", kpis["due_stores"]),
             ("تخصیص‌شده", kpis["assigned_stores"]),
             ("ویزیت تکمیل‌شده", kpis["completed_visits"]),
             ("سبز / زرد / قرمز", f"{kpis['green']} / {kpis['yellow']} / {kpis['red']}"),
-            ("صف فروش تلفنی", kpis["telesales_queue_size"]),
+            ("صف تماس تلفنی (کل صف فعال)", kpis["telesales_queue_size"]),
         ]
     )
 
@@ -152,7 +150,7 @@ def render_supervisor_dashboard(current_user: dict) -> None:
             )
 
     neu_section_header("خروجی‌ها")
-    d1, d2 = st.columns(2)
+    d1, d2 = st.columns([1, 1], gap="small")
     with d1:
         if selected_code != _ALL_VISITORS_OPTION and selected_code in visitor_options:
             with get_db() as db:
@@ -162,22 +160,20 @@ def render_supervisor_dashboard(current_user: dict) -> None:
                     visitor_id=visitor_options[selected_code],
                 )
             st.download_button(
-                label=f"📥 دانلود مسیر {selected_code}",
+                label=f"دانلود مسیر {selected_code}",
                 data=route_buf.getvalue(),
                 file_name=f"route_{work_date_iso}_{selected_code}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
             )
 
     with d2:
         if visitor_options:
             all_buf = _export_all_routes(work_date, visitor_options)
             st.download_button(
-                label="📥 دانلود همه مسیرها",
+                label="دانلود همه مسیرها",
                 data=all_buf.getvalue(),
                 file_name=f"all_routes_{work_date_iso}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
             )
 
     neu_section_header("نتایج ویزیت")

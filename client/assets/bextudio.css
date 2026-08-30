@@ -1,0 +1,419 @@
+/* ==========================================================================
+   Bextudio theme for BexLogix (Streamlit)
+   Generated from Figma file G9kseLvcDLIDvftvu2B1xv — see tokens.json.
+
+   Rules for anyone editing this file (human or agent):
+     1. tokens.json is the source of truth. Change it there, regenerate here.
+     2. Never hardcode a colour, radius, font size or spacing below the
+        :root block. Use var(--bx-*).
+     3. Streamlit class names are hashed and change between releases.
+        Target [data-testid="..."] only. Never target .st-emotion-cache-*.
+     4. The Streamlit version is pinned in requirements.txt. If you bump it,
+        re-verify every data-testid in this file.
+   ========================================================================== */
+
+
+/* ---------- 1. Fonts (bundled locally — the app must run offline) --------- */
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./fonts/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Geist is Latin-only. Vazirmatn leads for Persian text; Geist still shapes
+   Latin words inside Persian sentences (usernames, XLSX column names). */
+@font-face {
+  font-family: "Geist";
+  src: url("./fonts/Geist-Variable.woff2") format("woff2-variations");
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./fonts/GeistMono-Variable.woff2") format("woff2-variations");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+
+/* ---------- 2. Tokens ----------------------------------------------------- */
+
+:root {
+  /* colour — light */
+  --bx-background:            #ffffff;
+  --bx-foreground:            #0a0a0a;
+  --bx-card:                  #ffffff;
+  --bx-card-foreground:       #0a0a0a;
+  --bx-primary:               #0891b2;
+  --bx-primary-foreground:    #fafafa;
+  --bx-secondary:             #f5f5f5;
+  --bx-secondary-foreground:  #171717;
+  --bx-muted:                 #f5f5f5;
+  --bx-muted-foreground:      #737373;
+  --bx-accent:                #f5f5f5;
+  --bx-accent-foreground:     #171717;
+  --bx-destructive:           #dc2626;
+  --bx-destructive-foreground:#fef2f2;
+  --bx-border:                #e5e5e5;
+  --bx-input:                 #e5e5e5;
+  --bx-ring:                  #a3a3a3;
+
+  /* AA-safe primary. Use for any surface that carries text on top of it.
+     --bx-primary (#0891b2) is only 3.55:1 against white — see tokens.json. */
+  --bx-primary-strong:        #0e7490;
+
+  /* operational status — NOT in the Figma kit.
+     Placeholders for the visit outcomes. Confirm with the brand owner. */
+  --bx-status-green:          #15803d;
+  --bx-status-green-surface:  #f0fdf4;
+  --bx-status-amber:          #a16207;
+  --bx-status-amber-surface:  #fefce8;
+  --bx-status-red:            #b91c1c;
+  --bx-status-red-surface:    #fef2f2;
+
+  /* typography */
+  --bx-font-sans: "Vazirmatn", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --bx-font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --bx-text-xs:    12px;  --bx-leading-xs:   16px;
+  --bx-text-sm:    14px;  --bx-leading-sm:   20px;
+  --bx-text-base:  16px;  --bx-leading-base: 24px;
+  --bx-text-lg:    18px;  --bx-leading-lg:   28px;
+  --bx-text-xl:    20px;  --bx-leading-xl:   28px;
+  --bx-text-2xl:   24px;  --bx-leading-2xl:  32px;
+  --bx-text-4xl:   36px;  --bx-leading-4xl:  40px;
+
+  --bx-weight-light:    300;
+  --bx-weight-normal:   400;
+  --bx-weight-medium:   500;
+  --bx-weight-semibold: 600;
+  --bx-weight-bold:     700;
+
+  /* spacing */
+  --bx-space-0-5:  2px;
+  --bx-space-1:    4px;
+  --bx-space-2:    8px;
+  --bx-space-3:   12px;
+  --bx-space-4:   16px;
+  --bx-space-8:   32px;
+  --bx-space-12:  48px;
+
+  /* radius */
+  --bx-radius:     10px;
+  --bx-radius-md:   8px;
+  --bx-radius-lg:  10px;
+  --bx-radius-xl:  14px;
+
+  /* borders, elevation, focus */
+  --bx-border-width: 1px;
+  --bx-shadow-xs: 0 1px 2px 0 #0000000d;
+  --bx-focus-ring: 0 0 0 3px #a3a3a380;
+  --bx-focus-ring-destructive: 0 0 0 3px #dc262633;
+
+  /* control heights — 36px is the design-system default.
+     Note: this is below the 44px touch target the visitor role needs
+     outdoors. See .bx-touch below. */
+  --bx-control-sm: 32px;
+  --bx-control:    36px;
+  --bx-control-lg: 40px;
+}
+
+[data-theme="dark"], .bx-dark {
+  --bx-background:            #0a0a0a;
+  --bx-foreground:            #fafafa;
+  --bx-card:                  #0a0a0a;
+  --bx-card-foreground:       #fafafa;
+  --bx-secondary:             #262626;
+  --bx-secondary-foreground:  #fafafa;
+  --bx-muted:                 #262626;
+  --bx-muted-foreground:      #a3a3a3;
+  --bx-accent:                #262626;
+  --bx-accent-foreground:     #fafafa;
+  --bx-destructive:           #f87171;
+  --bx-border:                #ffffff1a;
+  --bx-input:                 #ffffff26;
+  --bx-primary-strong:        #0891b2;
+}
+
+
+/* ---------- 3. Base + RTL ------------------------------------------------- */
+
+html, body, [data-testid="stAppViewContainer"] {
+  font-family: var(--bx-font-sans);
+  font-size: var(--bx-text-sm);
+  line-height: var(--bx-leading-sm);
+  color: var(--bx-foreground);
+  background: var(--bx-background);
+}
+
+[data-testid="stAppViewContainer"],
+[data-testid="stSidebar"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Latin runs inside Persian text must stay LTR and must not be reordered.
+   Wrap them: st.markdown('<span class="bx-ltr">visitor_code</span>', ...) */
+.bx-ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  font-family: var(--bx-font-mono);
+}
+
+/* Codes, coordinates, IDs, ISO dates, file names. */
+code, kbd, samp, pre, .bx-code {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: var(--bx-font-mono);
+  font-size: var(--bx-text-xs);
+}
+
+/* Persian digits render with the wrong advance width in tabular contexts
+   unless numbers are tabular. Applies to KPI values and table cells. */
+.bx-num, [data-testid="stMetricValue"] {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+
+/* ---------- 4. Hide development chrome ------------------------------------ */
+/* Production only. Keep these behind a config flag so the team can still
+   reach the menu in staging — see AGENTS.md. */
+
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+[data-testid="stMainMenu"] {
+  display: none !important;
+}
+[data-testid="stHeader"] { background: transparent; height: 0; }
+footer { display: none !important; }
+
+
+/* ---------- 5. Layout ----------------------------------------------------- */
+
+[data-testid="stMainBlockContainer"] {
+  padding-top: var(--bx-space-8);
+  padding-bottom: var(--bx-space-12);
+  max-width: 1280px;
+}
+
+[data-testid="stSidebar"] {
+  background: var(--bx-secondary);
+  border-inline-start: var(--bx-border-width) solid var(--bx-border);
+}
+
+
+/* ---------- 6. Buttons ---------------------------------------------------- */
+
+[data-testid="stBaseButton-secondary"],
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-secondaryFormSubmit"],
+[data-testid="stBaseButton-primaryFormSubmit"] {
+  font-family: var(--bx-font-sans);
+  font-size: var(--bx-text-sm);
+  font-weight: var(--bx-weight-medium);
+  line-height: var(--bx-leading-sm);
+  min-height: var(--bx-control);
+  padding: 0 var(--bx-space-4);
+  border-radius: var(--bx-radius-md);
+  box-shadow: var(--bx-shadow-xs);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+/* primary → shadcn "default" */
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-primaryFormSubmit"] {
+  background: var(--bx-primary-strong);
+  color: var(--bx-primary-foreground);
+  border: var(--bx-border-width) solid transparent;
+}
+[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-primaryFormSubmit"]:hover {
+  background: color-mix(in srgb, var(--bx-primary-strong) 90%, #000);
+}
+
+/* secondary → shadcn "outline" */
+[data-testid="stBaseButton-secondary"],
+[data-testid="stBaseButton-secondaryFormSubmit"] {
+  background: var(--bx-background);
+  color: var(--bx-foreground);
+  border: var(--bx-border-width) solid var(--bx-input);
+}
+[data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stBaseButton-secondaryFormSubmit"]:hover {
+  background: var(--bx-accent);
+  color: var(--bx-accent-foreground);
+}
+
+/* Destructive. Streamlit has no destructive button, so scope it with a
+   container: with st.container(key="bx-destructive"). */
+.st-key-bx-destructive [data-testid^="stBaseButton"] {
+  background: var(--bx-destructive);
+  color: var(--bx-destructive-foreground);
+  border-color: transparent;
+}
+.st-key-bx-destructive [data-testid^="stBaseButton"]:focus-visible {
+  box-shadow: var(--bx-focus-ring-destructive);
+}
+
+[data-testid^="stBaseButton"]:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Focus must be visible on every interactive element — WCAG 2.2 AA (2.4.11).
+   Never replace this with outline:none. */
+[data-testid^="stBaseButton"]:focus-visible,
+[data-baseweb="select"] > div:focus-within,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: none;
+  box-shadow: var(--bx-focus-ring);
+  border-color: var(--bx-ring);
+}
+
+
+/* ---------- 7. Inputs and selects ----------------------------------------- */
+
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-baseweb="select"] > div {
+  font-family: var(--bx-font-sans);
+  font-size: var(--bx-text-sm);
+  min-height: var(--bx-control);
+  border-radius: var(--bx-radius-md);
+  border: var(--bx-border-width) solid var(--bx-input);
+  background: var(--bx-background);
+  color: var(--bx-foreground);
+}
+
+[data-testid="stWidgetLabel"] p {
+  font-size: var(--bx-text-sm);
+  font-weight: var(--bx-weight-medium);
+  color: var(--bx-foreground);
+}
+
+
+/* ---------- 8. Cards, expanders, metrics ---------------------------------- */
+
+[data-testid="stExpander"] details {
+  border: var(--bx-border-width) solid var(--bx-border);
+  border-radius: var(--bx-radius-lg);
+  background: var(--bx-card);
+  box-shadow: var(--bx-shadow-xs);
+}
+[data-testid="stExpander"] summary {
+  font-size: var(--bx-text-base);
+  font-weight: var(--bx-weight-semibold);
+  padding: var(--bx-space-3) var(--bx-space-4);
+}
+
+[data-testid="stMetric"] {
+  border: var(--bx-border-width) solid var(--bx-border);
+  border-radius: var(--bx-radius-lg);
+  background: var(--bx-card);
+  padding: var(--bx-space-4);
+  box-shadow: var(--bx-shadow-xs);
+}
+[data-testid="stMetricLabel"] p {
+  font-size: var(--bx-text-sm);
+  font-weight: var(--bx-weight-normal);
+  color: var(--bx-muted-foreground);
+}
+[data-testid="stMetricValue"] {
+  font-size: var(--bx-text-2xl);
+  font-weight: var(--bx-weight-semibold);
+  color: var(--bx-foreground);
+}
+
+
+/* ---------- 9. Alerts ----------------------------------------------------- */
+
+[data-testid="stAlert"] {
+  border-radius: var(--bx-radius-lg);
+  border: var(--bx-border-width) solid var(--bx-border);
+  font-size: var(--bx-text-sm);
+  padding: var(--bx-space-3) var(--bx-space-4);
+}
+
+
+/* ---------- 10. File uploader --------------------------------------------- */
+/* The dropzone ships English strings ("Browse files", "Drag and drop file
+   here", "200MB per file"). CSS can only hide them — the Persian replacement
+   has to come from config.toml [server] or a label above the widget.
+   See AGENTS.md; do not fake it with ::after content alone. */
+
+[data-testid="stFileUploaderDropzone"] {
+  border: var(--bx-border-width) dashed var(--bx-input);
+  border-radius: var(--bx-radius-lg);
+  background: var(--bx-muted);
+}
+
+
+/* ---------- 11. Status pills ---------------------------------------------- */
+/* Colour must never be the only signal — every pill carries a text label,
+   and the icon slot carries a distinct shape per status (WCAG 1.4.1). */
+
+.bx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bx-space-1);
+  padding: var(--bx-space-0-5) var(--bx-space-2);
+  border-radius: var(--bx-radius-md);
+  font-size: var(--bx-text-xs);
+  font-weight: var(--bx-weight-medium);
+  border: var(--bx-border-width) solid currentColor;
+}
+.bx-pill--green { color: var(--bx-status-green); background: var(--bx-status-green-surface); }
+.bx-pill--amber { color: var(--bx-status-amber); background: var(--bx-status-amber-surface); }
+.bx-pill--red   { color: var(--bx-status-red);   background: var(--bx-status-red-surface); }
+
+
+/* ---------- 12. Touch and responsive -------------------------------------- */
+/* The visitor role works outdoors, one-handed, on a phone. 36px controls are
+   too small there. This class raises the whole field surface to 44px. */
+
+.bx-touch [data-testid^="stBaseButton"],
+.bx-touch [data-baseweb="select"] > div,
+.bx-touch input {
+  min-height: 44px;
+  font-size: var(--bx-text-base);
+}
+
+/* Wide tables must scroll rather than squash the page. */
+@media (max-width: 640px) {
+  [data-testid="stMainBlockContainer"] {
+    padding-inline: var(--bx-space-3);
+  }
+  [data-testid="stDataFrame"] { overflow-x: auto; }
+  [data-testid="stHorizontalBlock"] { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

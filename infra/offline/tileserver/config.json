@@ -1,0 +1,30 @@
+{
+  "options": {
+    "paths": {
+      "root": "/config",
+      "styles": "styles",
+      "fonts": "/usr/src/app/node_modules/tileserver-gl-styles/fonts",
+      "sprites": ".",
+      "mbtiles": "/data",
+      "pmtiles": "/data"
+    }
+  },
+  "styles": {
+    "basic": {
+      "style": "basic.json",
+      "tilejson": {
+        "bounds": [51.2734, 35.6007, 51.5549, 35.807],
+        "minzoom": 0,
+        "maxzoom": 14
+      }
+    }
+  },
+  "data": {
+    "tehran": {
+      "mbtiles": "tehran.mbtiles"
+    },
+    "tehran_raster": {
+      "mbtiles": "tehran-raster.mbtiles"
+    }
+  }
+}
