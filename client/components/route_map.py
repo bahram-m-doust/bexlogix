@@ -419,6 +419,7 @@ def _render_leaflet_map(
           const tileLayer = L.tileLayer(
             payload.tile_url_template,
             {{
+              maxNativeZoom: 14,
               maxZoom: 19,
               attribution: payload.tile_attribution || "Local Tiles"
             }}
@@ -731,7 +732,7 @@ def _render_maplibre_vector_map(
           if (payload.tile_url_template) {{
             const tileLayer = window.L.tileLayer(
               payload.tile_url_template,
-              {{ maxZoom: 19, attribution: payload.tile_attribution || "Local Tiles" }}
+              {{ maxNativeZoom: 14, maxZoom: 19, attribution: payload.tile_attribution || "Local Tiles" }}
             );
             tileLayer.on("tileerror", function() {{ /* Keep route visible even if tiles fail */ }});
             tileLayer.addTo(fallbackMap);

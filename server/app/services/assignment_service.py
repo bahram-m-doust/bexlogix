@@ -28,12 +28,20 @@ from server.app.repositories import (
     visit_repository,
     visitor_repository,
 )
-from server.app.services import routing_service, scheduling_service, territory_service
+from server.app.services import (
+    routing_service,
+    runtime_health_service,
+    scheduling_service,
+    territory_service,
+)
 from server.app.utils.geo import haversine_km
 
 logger = logging.getLogger(__name__)
 
-QUALITY_GATE_THRESHOLD_PCT = 20.0
+ROUTE_QUALITY_BASELINE_DEFINITION = (
+    "same_assignments_store_code_order_unoptimized"
+)
+ROUTE_QUALITY_DISTANCE_SOURCE = "osrm_route_driving"
 
 
 # Contract: _assert_manager_user executes one deterministic step in the workflow.
@@ -978,29 +986,90 @@ def flush_work_date_operational_data(
     }
 
 
-# Contract: _calculate_path_length_for_rows executes one deterministic step in the workflow.
-def _calculate_path_length_for_rows(
-    start_lat: float | None,
-    start_lon: float | None,
-    ordered_rows: list[dict],
-) -> float:
-    if not ordered_rows or start_lat is None or start_lon is None:
-        return 0.0
-
-    total = 0.0
-    current_lat = float(start_lat)
-    current_lon = float(start_lon)
-    for row in ordered_rows:
-        lat = float(row["lat"])
-        lon = float(row["lon"])
-        total += _haversine_km(current_lat, current_lon, lat, lon)
-        current_lat = lat
-        current_lon = lon
-    return total
+# Contract: _resolve_route_build_status keeps route execution separate from its quality target.
+def _resolve_route_build_status(
+    assignment_rows: list,
+    route_summary: dict | None,
+) -> str:
+    if not assignment_rows or any(row.route_order is None for row in assignment_rows):
+        return "failed"
+    summary = route_summary or {}
+    fallback_stage = str(summary.get("fallback_stage") or "").strip()
+    solver_mode = str(summary.get("solver_mode") or "").strip().lower()
+    if (
+        int(summary.get("nn_routed", 0) or 0) > 0
+        or bool(fallback_stage)
+        or solver_mode.endswith("+nn")
+    ):
+        return "fallback"
+    return "success"
 
 
-# Contract: evaluate_route_quality_vs_round_robin executes one deterministic step in the workflow.
-def evaluate_route_quality_vs_round_robin(db: Session, work_date: date) -> dict:
+def _empty_route_quality_result(
+    work_date: date,
+    *,
+    route_build_status: str,
+    fallback_reason: str | None,
+    comparison_error: str,
+) -> dict:
+    target_pct = float(config.ROUTING_QUALITY_TARGET_PCT)
+    return {
+        "work_date": work_date.isoformat(),
+        "baseline_definition": ROUTE_QUALITY_BASELINE_DEFINITION,
+        "distance_source": ROUTE_QUALITY_DISTANCE_SOURCE,
+        "baseline_km": 0.0,
+        "optimized_km": 0.0,
+        # Backward-compatible field used by older dashboard code/exporters.
+        "current_km": 0.0,
+        "saved_km": 0.0,
+        "improvement_pct": 0.0,
+        "target_pct": target_pct,
+        "comparable": False,
+        "route_build_status": route_build_status,
+        "quality_target_status": "not_comparable",
+        "fallback_reason": fallback_reason,
+        "comparison_error": comparison_error,
+        "passes_gate": False,
+    }
+
+
+def _fetch_osrm_total_km(
+    *,
+    rows_by_visitor: dict[int, list[dict]],
+    context_by_visitor_id: dict[int, dict],
+    order_key,
+    runtime_status: dict[str, object],
+) -> tuple[float | None, str | None]:
+    total_km = 0.0
+    for visitor_id in sorted(rows_by_visitor):
+        rows = rows_by_visitor[visitor_id]
+        if not rows:
+            continue
+        context = context_by_visitor_id.get(visitor_id)
+        start_lat = context.get("start_lat") if context else None
+        start_lon = context.get("start_lon") if context else None
+        if start_lat is None or start_lon is None:
+            return None, "visitor_start_missing"
+
+        ordered_rows = sorted(rows, key=order_key)
+        cumulative = routing_service.fetch_osrm_cumulative_distances_km(
+            start_lat=float(start_lat),
+            start_lon=float(start_lon),
+            ordered_stops=ordered_rows,
+            runtime_status=runtime_status,
+        )
+        if cumulative is None or len(cumulative) != len(ordered_rows):
+            return None, "osrm_distance_unavailable"
+        total_km += float(cumulative[-1])
+    return total_km, None
+
+
+# Contract: evaluate_route_quality compares one raw deterministic order with the final route.
+def evaluate_route_quality(
+    db: Session,
+    work_date: date,
+    route_summary: dict | None = None,
+) -> dict:
     assignment_rows = (
         db.query(
             DailyAssignment.visitor_id,
@@ -1014,15 +1083,29 @@ def evaluate_route_quality_vs_round_robin(db: Session, work_date: date) -> dict:
         .filter(DailyAssignment.work_date == work_date)
         .all()
     )
+    route_build_status = _resolve_route_build_status(
+        assignment_rows=assignment_rows,
+        route_summary=route_summary,
+    )
+    fallback_reason = None
+    if route_summary:
+        fallback_reason = route_summary.get("fallback_reason") or route_summary.get(
+            "solver_reason"
+        )
     if not assignment_rows:
-        return {
-            "work_date": work_date.isoformat(),
-            "baseline_km": 0.0,
-            "current_km": 0.0,
-            "improvement_pct": 0.0,
-            "comparable": False,
-            "passes_gate": False,
-        }
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error="assignments_missing",
+        )
+    if route_build_status == "failed":
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error="current_route_order_missing",
+        )
 
     visitor_contexts = get_active_visitor_day_contexts(db, work_date)
     context_by_visitor_id = {int(item["visitor_id"]): item for item in visitor_contexts}
@@ -1039,84 +1122,90 @@ def evaluate_route_quality_vs_round_robin(db: Session, work_date: date) -> dict:
             }
         )
 
-    current_total_km = 0.0
-    for visitor_id, rows in rows_by_visitor.items():
-        context = context_by_visitor_id.get(visitor_id)
-        start_lat = context["start_lat"] if context else None
-        start_lon = context["start_lon"] if context else None
-        ordered_rows = sorted(
-            rows,
-            key=lambda row: (
-                row["route_order"] is None,
-                row["route_order"] if row["route_order"] is not None else 10**9,
-                row["store_code"],
-            ),
-        )
-        current_total_km += _calculate_path_length_for_rows(
-            start_lat, start_lon, ordered_rows
+    runtime_status = runtime_health_service.get_offline_runtime_status()
+    if not bool(runtime_status.get("osrm_up", False)):
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error="osrm_unavailable",
         )
 
-    all_stores = []
-    for rows in rows_by_visitor.values():
-        all_stores.extend(rows)
-
-    all_stores.sort(key=lambda row: row["store_code"])
-    visitor_ids = sorted(rows_by_visitor.keys())
-    if not visitor_ids:
-        visitor_ids = sorted(context_by_visitor_id.keys())
-
-    baseline_assignments: dict[int, list[dict]] = {
-        visitor_id: [] for visitor_id in visitor_ids
-    }
-    for idx, store in enumerate(all_stores):
-        target_visitor_id = visitor_ids[idx % len(visitor_ids)]
-        baseline_assignments[target_visitor_id].append(store)
-
-    planner = routing_service.NearestNeighborRoutePlanner()
-    baseline_total_km = 0.0
-    for visitor_id, rows in baseline_assignments.items():
-        if not rows:
-            continue
-        context = context_by_visitor_id.get(visitor_id)
-        start_lat = context["start_lat"] if context else None
-        start_lon = context["start_lon"] if context else None
-        indexed_rows = list(enumerate(rows, start=1))
-        stops = [
-            {
-                "assignment_id": index,
-                "store_code": row["store_code"],
-                "lat": row["lat"],
-                "lon": row["lon"],
-            }
-            for index, row in indexed_rows
-        ]
-        planned = planner.plan_route(start_lat, start_lon, stops)
-        planned_by_assignment_id = {item.assignment_id: item for item in planned}
-        ordered_indexed_rows = sorted(
-            indexed_rows,
-            key=lambda row: planned_by_assignment_id.get(
-                row[0],
-                routing_service.RouteStop(
-                    assignment_id=0, route_order=10**9, route_distance_km=None
-                ),
-            ).route_order,
-        )
-        ordered_rows = [row for _, row in ordered_indexed_rows]
-        baseline_total_km += _calculate_path_length_for_rows(
-            start_lat, start_lon, ordered_rows
+    # Raw baseline: preserve the real visitor-to-store allocation and rebuild a
+    # deterministic, unoptimized order from store_code. No NN/OSRM optimizer is
+    # allowed to reorder this side of the comparison.
+    baseline_total_km, baseline_error = _fetch_osrm_total_km(
+        rows_by_visitor=rows_by_visitor,
+        context_by_visitor_id=context_by_visitor_id,
+        order_key=lambda row: (str(row["store_code"]), int(row["store_id"])),
+        runtime_status=runtime_status,
+    )
+    if baseline_total_km is None:
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error=baseline_error or "osrm_distance_unavailable",
         )
 
-    improvement_pct = 0.0
-    if baseline_total_km > 0:
-        improvement_pct = (
-            (baseline_total_km - current_total_km) / baseline_total_km
-        ) * 100.0
+    optimized_total_km, optimized_error = _fetch_osrm_total_km(
+        rows_by_visitor=rows_by_visitor,
+        context_by_visitor_id=context_by_visitor_id,
+        order_key=lambda row: (
+            int(row["route_order"]),
+            str(row["store_code"]),
+            int(row["store_id"]),
+        ),
+        runtime_status=runtime_status,
+    )
+    if optimized_total_km is None:
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error=optimized_error or "osrm_distance_unavailable",
+        )
+
+    if baseline_total_km <= 0:
+        return _empty_route_quality_result(
+            work_date,
+            route_build_status=route_build_status,
+            fallback_reason=fallback_reason,
+            comparison_error="baseline_distance_zero",
+        )
+
+    saved_km = baseline_total_km - optimized_total_km
+    improvement_pct = (saved_km / baseline_total_km) * 100.0
+    target_pct = float(config.ROUTING_QUALITY_TARGET_PCT)
+    passes_gate = bool(improvement_pct >= target_pct)
 
     return {
         "work_date": work_date.isoformat(),
+        "baseline_definition": ROUTE_QUALITY_BASELINE_DEFINITION,
+        "distance_source": ROUTE_QUALITY_DISTANCE_SOURCE,
         "baseline_km": round(baseline_total_km, 3),
-        "current_km": round(current_total_km, 3),
+        "optimized_km": round(optimized_total_km, 3),
+        "current_km": round(optimized_total_km, 3),
+        "saved_km": round(saved_km, 3),
         "improvement_pct": round(improvement_pct, 2),
-        "comparable": bool(baseline_total_km > 0),
-        "passes_gate": bool(improvement_pct >= QUALITY_GATE_THRESHOLD_PCT),
+        "target_pct": target_pct,
+        "comparable": True,
+        "route_build_status": route_build_status,
+        "quality_target_status": "achieved" if passes_gate else "below_target",
+        "fallback_reason": fallback_reason,
+        "comparison_error": None,
+        "passes_gate": passes_gate,
     }
+
+
+# Backward-compatible API for existing integrations.
+def evaluate_route_quality_vs_round_robin(
+    db: Session,
+    work_date: date,
+    route_summary: dict | None = None,
+) -> dict:
+    return evaluate_route_quality(
+        db=db,
+        work_date=work_date,
+        route_summary=route_summary,
+    )

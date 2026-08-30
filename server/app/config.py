@@ -94,6 +94,14 @@ ROUTING_USE_TERRITORY_CLUSTERING = _to_bool(
     os.getenv("ROUTING_USE_TERRITORY_CLUSTERING"), True
 )
 
+# Experimental route-quality target. This is a reporting threshold, not a
+# route-build success condition. Keep the historical 20% default while making
+# it configurable so it can be calibrated against real operating days.
+ROUTING_QUALITY_TARGET_PCT = min(
+    100.0,
+    max(0.0, _to_float(os.getenv("ROUTING_QUALITY_TARGET_PCT"), 20.0)),
+)
+
 # Preferred map render engine for offline vector/raster pipelines.
 # Allowed: auto | leaflet_minimal | maplibre_vector
 MAP_RENDER_ENGINE = os.getenv("MAP_RENDER_ENGINE", "auto").strip().lower()

@@ -11,6 +11,7 @@ services:
       BEXLOGIX_DATABASE_URL: sqlite:////app/runtime/bexlogix.db
       OSRM_BASE_URL: http://osrm:5000
       VROOM_BASE_URL: http://vroom:3000
+      ROUTING_QUALITY_TARGET_PCT: ${ROUTING_QUALITY_TARGET_PCT:-20}
       MAP_TILE_SERVICE_BASE: http://tiles:8080
       MAP_TILE_URL_TEMPLATE: http://127.0.0.1:8080/data/tehran_raster/{z}/{x}/{y}.png
       OFFLINE_OSRM_GRAPH_PATH: /app/offline/osrm/data/tehran-latest.osrm

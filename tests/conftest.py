@@ -17,8 +17,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Bind the application to an isolated in-memory SQLite DB for the test run.
-os.environ.setdefault("BEXLOGIX_DATABASE_URL", "sqlite:///:memory:")
+# Bind the application to an isolated in-memory SQLite DB for every test run.
+# Never inherit a production/container URL: db_session drops all tables by
+# design, so setdefault() would be unsafe when BEXLOGIX_DATABASE_URL exists.
+os.environ["BEXLOGIX_DATABASE_URL"] = "sqlite:///:memory:"
 
 
 @pytest.fixture

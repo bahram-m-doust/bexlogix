@@ -58,6 +58,16 @@ def _fallback_reason_fa(reason: str | None) -> str:
         return "پاسخ OSRM معتبر نبود."
     if reason == "osrm_unavailable":
         return "سرویس OSRM محلی در دسترس نبود."
+    if reason == "osrm_distance_unavailable":
+        return "OSRM نتوانست مسافت جاده‌ای کامل را برای همه مسیرها برگرداند."
+    if reason == "visitor_start_missing":
+        return "نقطه شروع یکی از ویزیتورها ثبت نشده است."
+    if reason == "current_route_order_missing":
+        return "ترتیب نهایی یکی از مسیرها کامل ثبت نشده است."
+    if reason == "baseline_distance_zero":
+        return "مسافت مسیر خام صفر است و درصد بهبود تعریف نمی‌شود."
+    if reason == "assignments_missing":
+        return "تخصیصی برای این تاریخ وجود ندارد."
     return "دلیل دقیق fallback مشخص نیست."
 
 
@@ -459,16 +469,25 @@ def _run_apply_files_and_build_route(
                             mark_complete=True,
                         )
 
-                quality = assignment_service.evaluate_route_quality_vs_round_robin(
+                quality = assignment_service.evaluate_route_quality(
                     db=db,
                     work_date=work_date,
+                    route_summary=route_summary,
                 )
-                _set_step(
-                    "quality",
-                    "done",
-                    f"کیفیت مسیر: بهبود {quality['improvement_pct']}٪ نسبت به تخصیص مبنا",
-                    mark_complete=True,
-                )
+                if quality["comparable"]:
+                    _set_step(
+                        "quality",
+                        "done",
+                        f"کیفیت جاده‌ای: بهبود {quality['improvement_pct']}٪ نسبت به مسیر خام",
+                        mark_complete=True,
+                    )
+                else:
+                    _set_step(
+                        "quality",
+                        "warn",
+                        "کیفیت جاده‌ای قابل مقایسه نیست؛ مسیر ساخته‌شده همچنان معتبر است.",
+                        mark_complete=True,
+                    )
                 status.update(label="پایپلاین با موفقیت انجام شد.", state="complete")
 
             return {
@@ -493,8 +512,15 @@ def _render_pipeline_result(result: dict) -> None:
         "quality",
         {
             "baseline_km": 0.0,
+            "optimized_km": 0.0,
             "current_km": 0.0,
+            "saved_km": 0.0,
             "improvement_pct": 0.0,
+            "target_pct": 20.0,
+            "comparable": False,
+            "route_build_status": "failed",
+            "quality_target_status": "not_comparable",
+            "fallback_reason": None,
             "passes_gate": False,
         },
     )
@@ -531,23 +557,29 @@ def _render_pipeline_result(result: dict) -> None:
         f"مرتب‌سازی مسیر: {route_summary.get('total_assignments', 0)}"
     )
 
-    comparable = not (
-        int(route_summary.get("osrm_routed", 0)) == 0
-        and int(route_summary.get("nn_routed", 0)) > 0
-        and solver_mode != "vroom"
-    )
-    gate_text = (
-        "قابل مقایسه نیست"
-        if not comparable
-        else "مسیر ساخته شد"
+    comparable = bool(quality.get("comparable", False))
+    route_status_text = {
+        "success": "موفق",
+        "fallback": "ساخته‌شده با پشتیبان",
+        "failed": "ناموفق",
+    }.get(str(quality.get("route_build_status") or "failed"), "نامشخص")
+    quality_status_text = {
+        "achieved": "هدف محقق شد",
+        "below_target": "زیر هدف آزمایشی",
+        "not_comparable": "غیرقابل مقایسه",
+    }.get(
+        str(quality.get("quality_target_status") or "not_comparable"),
+        "غیرقابل مقایسه",
     )
 
     render_metric_grid(
         [
-            ('مسافت مبنای مقایسه (<span class="ltr-inline">km</span>)', quality["baseline_km"]),
-            ('مسافت مسیر ساخته‌شده (<span class="ltr-inline">km</span>)', quality["current_km"]),
-            ("بهبود نسبت به مبنای مقایسه", f"{quality['improvement_pct']}%"),
-            ("وضعیت", gate_text),
+            ('مسافت مسیر خام (<span class="ltr-inline">km</span>)', quality["baseline_km"]),
+            ('مسافت مسیر نهایی جاده‌ای (<span class="ltr-inline">km</span>)', quality.get("optimized_km", quality["current_km"])),
+            ('مسافت صرفه‌جویی‌شده (<span class="ltr-inline">km</span>)', quality.get("saved_km", 0.0)),
+            ("بهبود نسبت به مسیر خام", f"{quality['improvement_pct']}%"),
+            ("وضعیت ساخت مسیر", route_status_text),
+            ("وضعیت هدف کیفیت", quality_status_text),
         ]
     )
     if solver_mode == "vroom":
@@ -624,7 +656,13 @@ def _render_pipeline_result(result: dict) -> None:
     if comparable and not quality["passes_gate"]:
         st.info(
             "مسیرها با OSRM با موفقیت ساخته شدند. "
-            f"شاخص مقایسه فعلی {quality['improvement_pct']}٪ است و به هدف آزمایشی ۲۰٪ نرسیده است."
+            f"بهبود جاده‌ای {quality['improvement_pct']}٪ است و به هدف آزمایشی "
+            f"{quality.get('target_pct', 20.0):g}٪ نرسیده است."
+        )
+    if not comparable:
+        st.info(
+            "محاسبه کیفیت جاده‌ای کامل نشد؛ این وضعیت مستقل از موفقیت ساخت مسیر است. "
+            f"دلیل: {_fallback_reason_fa(quality.get('comparison_error'))}"
         )
 
 
